@@ -1,6 +1,7 @@
 
 
-name: CI-CD
+
+name: CI
 
 on:
   push:
@@ -9,7 +10,7 @@ on:
     branches: [ main ]
 
 jobs:
-  ci-cd:
+  tests-and-lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -26,35 +27,109 @@ jobs:
           cd backend
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest flake8
+          pip install pytest flake8 requests
 
-      - name: Run tests
+      # 1️⃣ מריצים את כל הבדיקות הרגילות (unit/api) – בלי האינטגרציה
+      - name: Run unit/API tests (without integration)
         run: |
           cd backend
-          pytest
+          pytest -m "not integration"
 
+      # 2️⃣ מריצים לינט
       - name: Run linter
         run: |
           cd backend
           flake8 .
 
-      # רק כשזה על main – נבנה ונדחוף image
-      - name: Login to Docker Hub
-        if: github.ref == 'refs/heads/main'
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: |
-          echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
-
-      - name: Build and push Docker image
-        if: github.ref == 'refs/heads/main'
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      # 3️⃣ בונים image לבדיקה (משתמש באותו Dockerfile של האפליקציה)
+      - name: Build Docker image for integration tests
         run: |
           cd backend
-          IMAGE_NAME=$DOCKERHUB_USERNAME/currency-app
-          docker build -t $IMAGE_NAME:${{ github.sha }} .
-          docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
-          docker push $IMAGE_NAME:${{ github.sha }}
-          docker push $IMAGE_NAME:latest
+          docker build -t currency-app:test .
+
+      # 4️⃣ מרימים container אמיתי מה-image הזה
+      - name: Run container for integration tests
+        run: |
+          docker run -d -p 8080:8080 --name currency-app-test currency-app:test
+
+      # 5️⃣ מריצים את בדיקות האינטגרציה – עכשיו הם באמת רצים נגד Docker
+      - name: Run integration tests
+        run: |
+          cd backend
+          pytest -m "integration"
+
+      # 6️⃣ אם האינטגרציה נפלה – נראה לוגים מהקונטיינר
+      - name: Show container logs if integration tests failed
+        if: failure()
+        run: |
+          docker logs currency-app-test || true
+
+      # 7️⃣ ניקוי (לא חובה, אבל יפה)
+      - name: Stop and remove container
+        if: always()
+        run: |
+          docker stop currency-app-test || true
+          docker rm currency-app-test || true
+
+
+
+
+
+# name: CI-CD
+
+# on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
+
+# jobs:
+#   ci-cd:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.11"
+
+#       - name: Install backend dependencies
+#         run: |
+#           cd backend
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
+#           pip install pytest flake8
+
+#       - name: Run tests
+#         run: |
+#           cd backend
+#           pytest
+
+#       - name: Run linter
+#         run: |
+#           cd backend
+#           flake8 .
+
+#       # רק כשזה על main – נבנה ונדחוף image
+#       - name: Login to Docker Hub
+#         if: github.ref == 'refs/heads/main'
+#         env:
+#           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+#           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+#         run: |
+#           echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
+
+#       - name: Build and push Docker image
+#         if: github.ref == 'refs/heads/main'
+#         env:
+#           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+#         run: |
+#           cd backend
+#           IMAGE_NAME=$DOCKERHUB_USERNAME/currency-app
+#           docker build -t $IMAGE_NAME:${{ github.sha }} .
+#           docker tag $IMAGE_NAME:${{ github.sha }} $IMAGE_NAME:latest
+#           docker push $IMAGE_NAME:${{ github.sha }}
+#           docker push $IMAGE_NAME:latest

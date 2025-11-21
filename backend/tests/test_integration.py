@@ -3,9 +3,10 @@
 import requests
 import time
 import unittest
-
+import pytest
 BASE_URL = "http://localhost:8080"
 
+@pytest.mark.integration
 class TestIntegration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
