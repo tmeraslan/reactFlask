@@ -1,13 +1,10 @@
-
 import os
 from flask import Flask, jsonify, request
 
 # נשים את תקיית הבילד של ה-React בתור static_folder
 app = Flask(__name__, static_folder="frontend-dist", static_url_path="/")
-
 from flask_cors import CORS
 CORS(app)
-
 RATES_TO_USD = {
     "USD": 1.0,
     "EUR": 1.1,

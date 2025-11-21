@@ -1,5 +1,3 @@
-
-
 import requests
 import time
 import unittest
@@ -35,5 +33,3 @@ class TestIntegration(unittest.TestCase):
         data = r.json()
         self.assertIn("result", data)
         self.assertGreater(data["result"], 0)
-
-
