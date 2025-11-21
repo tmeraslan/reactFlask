@@ -1,7 +1,4 @@
-
-
-
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -27,49 +24,68 @@ jobs:
           cd backend
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest flake8 requests
+          pip install flake8
 
-      # 1️⃣ מריצים את כל הבדיקות הרגילות (unit/api) – בלי האינטגרציה
-      - name: Run unit/API tests (without integration)
+      - name: Run flake8
+        run: |
+          cd backend
+          flake8 .
+
+      - name: Run unit tests (exclude integration)
         run: |
           cd backend
           pytest -m "not integration"
 
-      # 2️⃣ מריצים לינט
-      # - name: Run linter
-      #   run: |
-      #     cd backend
-      #     flake8 .
+  integration-and-build-and-push:
+    needs: tests-and-lint
+    runs-on: ubuntu-latest
+    # נריץ build + push *רק* על push ל-main, לא על PR
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
-      # 3️⃣ בונים image לבדיקה (משתמש באותו Dockerfile של האפליקציה)
-      - name: Build Docker image for integration tests
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/currency-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend test dependencies
         run: |
           cd backend
-          docker build -t currency-app:test .
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-      # 4️⃣ מרימים container אמיתי מה-image הזה
+      # 1. בונים את ה-image מה-Dockerfile שב-root של הפרויקט
+      - name: Build Docker image
+        run: |
+          docker build -t $IMAGE_NAME:${{ github.sha }} -t $IMAGE_NAME:latest .
+
+      # 2. מריצים את הקונטיינר ברקע על פורט 8080
       - name: Run container for integration tests
         run: |
-          docker run -d -p 8080:8080 --name currency-app-test currency-app:test
+          docker run -d --name currency-app -p 8080:8080 $IMAGE_NAME:${{ github.sha }}
 
-      # 5️⃣ מריצים את בדיקות האינטגרציה – עכשיו הם באמת רצים נגד Docker
+      # 3. מריצים את ה-integration tests (שכבר כתבת)
       - name: Run integration tests
         run: |
           cd backend
-          pytest -m "integration"
+          pytest -m integration
 
-      # 6️⃣ אם האינטגרציה נפלה – נראה לוגים מהקונטיינר
-      - name: Show container logs if integration tests failed
-        if: failure()
+      # 4. לוגין ל-Docker Hub
+      - name: Login to Docker Hub
         run: |
-          docker logs currency-app-test || true
+          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      # 7️⃣ ניקוי (לא חובה, אבל יפה)
-      - name: Stop and remove container
-        if: always()
+      # 5. דחיפה ל-Docker Hub
+      - name: Push Docker image
         run: |
-          docker stop currency-app-test || true
-          docker rm currency-app-test || true
+          docker push $IMAGE_NAME:${{ github.sha }}
+          docker push $IMAGE_NAME:latest
 
 
 
