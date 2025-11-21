@@ -1,0 +1,15 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-currency-app
+  labels:
+    app: currency-app
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    app: currency-app
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}      # הפורט החשוף בתוך הקלאסטר
+      targetPort: {{ .Values.containerPort }} # הפורט בתוך הקונטיינר

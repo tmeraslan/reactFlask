@@ -45,3 +45,12 @@ EXPOSE 8080
 
 # מריצים את האפליקציה
 CMD ["python", "app.py"]
+
+
+# לבנות את האפליקציה:
+
+# docker build -t currency-app .
+
+# להריץ:
+
+#     docker run -p 8080:8080 currency-app
