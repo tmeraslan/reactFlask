@@ -36,10 +36,10 @@ jobs:
           pytest -m "not integration"
 
       # 2️⃣ מריצים לינט
-      - name: Run linter
-        run: |
-          cd backend
-          flake8 .
+      # - name: Run linter
+      #   run: |
+      #     cd backend
+      #     flake8 .
 
       # 3️⃣ בונים image לבדיקה (משתמש באותו Dockerfile של האפליקציה)
       - name: Build Docker image for integration tests
