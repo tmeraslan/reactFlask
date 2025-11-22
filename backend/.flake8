@@ -1,0 +1,8 @@
+[flake8]
+exclude = 
+    venv,
+    node_modules,
+    __pycache__,
+    migrations,
+    .pytest_cache
+max-line-length = 120

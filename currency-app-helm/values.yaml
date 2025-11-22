@@ -1,0 +1,27 @@
+
+# כמה רפליקות של הפוד להריץ
+replicaCount: 2
+
+image:
+  # תחליף לשם התמונה שלך בדוקר (למשל: tmeraslan/currency-app)
+  repository: currency-app
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# פורט שעליו האפליקציה מאזינה בתוך הקונטיינר (Flask+React)
+containerPort: 8080
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true           # אם תרצה Ingress → תשנה ל true
+  className: ""            # לדוגמה: "nginx" אם יש Ingress Controller כזה
+  annotations: {}
+  hosts:
+    - host: currency.local # לשימוש ב-/etc/hosts בסביבה מקומית
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
