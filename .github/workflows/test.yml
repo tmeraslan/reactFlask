@@ -1,4 +1,5 @@
 
+
 name: CI/CD
 
 on:
@@ -37,17 +38,13 @@ jobs:
           cd backend
           pytest -m "not integration"
 
-  integration-and-build-and-push:
+  integration-tests:
     needs: tests-and-lint
     runs-on: ubuntu-latest
-    # נריץ build + push *רק* על push ל-main, לא על PR
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    env:
-      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/currency-app
 
     steps:
       - name: Checkout code
+      # מורידים את הקוד
         uses: actions/checkout@v4
 
       - name: Setup Python
@@ -61,32 +58,150 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 1. בונים את ה-image מה-Dockerfile שב-root של הפרויקט
-      - name: Build Docker image
+      # 1. בונים image לבדיקה (לא דוחפים אותו, רק לוקאלי ל־CI)
+      - name: Build Docker image for integration tests
         run: |
-          docker build -t $IMAGE_NAME:${{ github.sha }} -t $IMAGE_NAME:latest .
+          docker build -t currency-app-test:${{ github.sha }} .
 
       # 2. מריצים את הקונטיינר ברקע על פורט 8080
       - name: Run container for integration tests
         run: |
-          docker run -d --name currency-app -p 8080:8080 $IMAGE_NAME:${{ github.sha }}
+          docker run -d --name currency-app-test -p 8080:8080 currency-app-test:${{ github.sha }}
 
-      # 3. מריצים את ה-integration tests (שכבר כתבת)
+      # 3. מריצים את ה-integration tests (test_integration.py)
       - name: Run integration tests
         run: |
           cd backend
           pytest -m integration
 
-      # 4. לוגין ל-Docker Hub
+      # 4. עוצרים ומנקים את הקונטיינר (לא חובה, אבל יפה)
+      - name: Stop and remove container
+        if: always()
+        run: |
+          docker stop currency-app-test || true
+          docker rm currency-app-test || true
+
+  build-and-push:
+    needs: [tests-and-lint, integration-tests]
+    runs-on: ubuntu-latest
+    # רק על push ל-main
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/currency-app
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1. בונים שוב image (הפעם עם השם של Docker Hub)
+      - name: Build Docker image
+        run: |
+          docker build -t $IMAGE_NAME:${{ github.sha }} -t $IMAGE_NAME:latest .
+
+      # 2. לוגין ל-Docker Hub
       - name: Login to Docker Hub
         run: |
           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      # 5. דחיפה ל-Docker Hub
+      # 3. דחיפה ל-Docker Hub
       - name: Push Docker image
         run: |
           docker push $IMAGE_NAME:${{ github.sha }}
           docker push $IMAGE_NAME:latest
+
+
+
+
+
+# name: CI/CD
+
+# on:
+#   push:
+#     branches: [ main ]
+#   pull_request:
+#     branches: [ main ]
+
+# jobs:
+#   tests-and-lint:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.11"
+
+#       - name: Install backend dependencies
+#         run: |
+#           cd backend
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
+#           pip install flake8
+
+#       # - name: Run flake8
+#       #   run: |
+#       #     cd backend
+#       #     flake8 .
+
+#       - name: Run unit tests (exclude integration)
+#         run: |
+#           cd backend
+#           pytest -m "not integration"
+
+#   integration-and-build-and-push:
+#     needs: tests-and-lint
+#     runs-on: ubuntu-latest
+#     # נריץ build + push *רק* על push ל-main, לא על PR
+#     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+#     env:
+#       IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/currency-app
+
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       - name: Setup Python
+#         uses: actions/setup-python@v5
+#         with:
+#           python-version: "3.11"
+
+#       - name: Install backend test dependencies
+#         run: |
+#           cd backend
+#           python -m pip install --upgrade pip
+#           pip install -r requirements.txt
+
+#       # 1. בונים את ה-image מה-Dockerfile שב-root של הפרויקט
+#       - name: Build Docker image
+#         run: |
+#           docker build -t $IMAGE_NAME:${{ github.sha }} -t $IMAGE_NAME:latest .
+
+#       # 2. מריצים את הקונטיינר ברקע על פורט 8080
+#       - name: Run container for integration tests
+#         run: |
+#           docker run -d --name currency-app -p 8080:8080 $IMAGE_NAME:${{ github.sha }}
+
+#       # 3. מריצים את ה-integration tests (שכבר כתבת)
+#       - name: Run integration tests
+#         run: |
+#           cd backend
+#           pytest -m integration
+
+#       # 4. לוגין ל-Docker Hub
+#       - name: Login to Docker Hub
+#         run: |
+#           echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+#       # 5. דחיפה ל-Docker Hub
+#       - name: Push Docker image
+#         run: |
+#           docker push $IMAGE_NAME:${{ github.sha }}
+#           docker push $IMAGE_NAME:latest
 
 
 
