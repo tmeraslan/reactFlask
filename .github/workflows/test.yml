@@ -12,6 +12,8 @@ jobs:
   tests-and-lint:
     runs-on: ubuntu-latest
 
+    if: github.ref == 'refs/heads/main' && github.event_name == 'pull request'
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,10 +30,10 @@ jobs:
           pip install -r requirements.txt
           pip install flake8
 
-      # - name: Run flake8
-      #   run: |
-      #     cd backend
-      #     flake8 .
+      - name: Run flake8
+        run: |
+          cd backend
+          flake8 .
 
       - name: Run unit tests (exclude integration)
         run: |
@@ -41,6 +43,7 @@ jobs:
   integration-tests:
     needs: tests-and-lint
     runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'pull request'
 
     steps:
       - name: Checkout code
