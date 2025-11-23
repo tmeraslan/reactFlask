@@ -1,5 +1,3 @@
-
-
 name: CI/CD
 
 on:
@@ -114,7 +112,8 @@ jobs:
           docker push $IMAGE_NAME:latest
 
 
-
+# coverage run -m pytest
+# coverage html
 
 
 # name: CI/CD

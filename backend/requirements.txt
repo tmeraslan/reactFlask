@@ -4,3 +4,7 @@ flask-cors
 
 pytest
 requests
+
+selenium
+webdriver-manager
+
