@@ -7,8 +7,8 @@ import styles from "./styles";
 // VITE_API_BASE=http://localhost:5000
 // const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
-// const API_BASE = import.meta.env.VITE_API_BASE || window.location.origin;
-const API_BASE = "http://localhost:8080"
+const API_BASE = import.meta.env.VITE_API_BASE || window.location.origin;
+// const API_BASE = "http://localhost:8080"
 
 
 const CURRENCIES = ["USD", "EUR", "GBP", "JPY"];
