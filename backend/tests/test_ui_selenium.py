@@ -21,6 +21,9 @@ def driver():
 
     options = webdriver.ChromeOptions()
     # options.add_argument("--headless=new")
+    if os.getenv("GITHUB_ACTIONS") == "true":
+        options.add_argument("--headless=new")
+        
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
 
