@@ -1,0 +1,20 @@
+
+# Dockerfile.backend
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+
+# מתקינים תלויות
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# מעתיקים את קבצי ה-backend
+COPY backend/ ./
+
+# נגדיר פורט ש-Flask ישתמש בו (יכול להיות 5000 למשל)
+ENV PORT=5000
+EXPOSE 5000
+
+CMD ["python", "app.py"]

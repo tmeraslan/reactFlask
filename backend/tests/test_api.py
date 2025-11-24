@@ -117,3 +117,16 @@ class TestCurrencyAPI(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+# python3 -m venv venv
+# source venv/bin/activate
+
+# pip install -r requirements.txt
+# python -m unittest
+
+
+#run by pytest
+#pip install pytest
+#pytest

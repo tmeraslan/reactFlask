@@ -27,3 +27,18 @@ python -m venv venv
 source venv/bin/activate  # on Windows: venv\Scripts\activate
 pip install -r requirements.txt
 python app.py
+
+
+//The UI is served directly from the Flask backend.
+Reasons:
+- Simpler architecture (single container).
+- No reverse proxy needed.
+- Easier local development.
+
+
+
+//The UI is served as a separate static container using Nginx.
+Reasons:
+- Better separation of concerns.
+- UI and API can scale independently.
+- Production-grade static serving via Nginx.
